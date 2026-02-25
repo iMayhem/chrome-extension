@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   saveBtn.addEventListener('click', () => {
     const address = addressInput.value.trim();
-    const port = portInput.value.trim() || "8080";
+    const port = portInput.value.trim() || "8081";
     const enabled = enableToggle.checked;
 
     if (enabled && !address) {

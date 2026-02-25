@@ -1,6 +1,6 @@
 let socket = null;
 let rdpAddress = null;
-let rdpPort = "8080";
+let rdpPort = "8081";
 let presenceEnabled = true;
 
 // Initialize extension

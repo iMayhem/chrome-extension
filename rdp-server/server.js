@@ -14,8 +14,8 @@ console.log(`[INIT] Client ID configured: ${clientId}`);
 console.log(`[INIT] Creating Discord RPC Client...`);
 const rpc = new RPC.Client({ transport: 'ipc' });
 
-// Initialize WebSocket Server on port 8080
-const port = 8080;
+// Initialize WebSocket Server on port 8081
+const port = 8081;
 console.log(`[INIT] Creating WebSocket Server on port ${port}...`);
 const wss = new WebSocket.Server({ port: port });
 

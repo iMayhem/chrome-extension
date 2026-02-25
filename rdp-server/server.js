@@ -105,6 +105,8 @@ wss.on('connection', function connection(ws, req) {
                 setActivity(data.url, data.title);
             } else if (data.action === "clearPresence") {
                 clearActivity();
+            } else if (data.action === "ping") {
+                // Ignore ping silently
             } else {
                 console.log(`[WEBSOCKET] Unknown action received: ${data.action}`);
             }

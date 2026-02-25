@@ -2,6 +2,7 @@ let socket = null;
 let rdpAddress = null;
 let rdpPort = "8081";
 let presenceEnabled = true;
+let keepAliveInterval = null;
 
 // Initialize extension
 chrome.storage.local.get(['rdpAddress', 'rdpPort', 'presenceEnabled'], (result) => {
@@ -49,10 +50,21 @@ function connectToRDP() {
     socket.onopen = () => {
         console.log(`[RDP Bridge] Connected to ${url}`);
         updatePresenceForActiveTab();
+
+        // Keep the service worker alive by pinging the server every 20 seconds
+        keepAliveInterval = setInterval(() => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ action: "ping" }));
+            }
+        }, 20000);
     };
 
     socket.onclose = (event) => {
         console.log('[RDP Bridge] Disconnected:', event.code, event.reason);
+        if (keepAliveInterval) {
+            clearInterval(keepAliveInterval);
+            keepAliveInterval = null;
+        }
         socket = null;
 
         // Attempt reconnect every 10 seconds if still enabled
@@ -113,7 +125,15 @@ function handleTabChange(tab) {
         return;
     }
 
-    sendPresenceUpdate(tab.title, tab.url);
+    let cleanUrl = tab.url;
+    try {
+        const urlObj = new URL(tab.url);
+        cleanUrl = urlObj.hostname; // This changes "https://www.youtube.com/watch?v=..." to just "www.youtube.com"
+    } catch (e) {
+        console.error("Failed to parse URL:", tab.url);
+    }
+
+    sendPresenceUpdate(tab.title, cleanUrl);
 }
 
 // Listener: when active tab changes.

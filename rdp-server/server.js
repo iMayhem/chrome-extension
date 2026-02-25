@@ -5,32 +5,45 @@ const WebSocket = require('ws');
 // (https://discord.com/developers/applications) and paste the Client ID below.
 const clientId = '1476159752235913286'; // REPLACE THIS WITH YOUR OWN DEV PORTAL CLIENT ID
 
+console.log('==============================================');
+console.log('      Discord RDP Bridge Started (DEBUG)      ');
+console.log('==============================================');
+console.log(`[INIT] Client ID configured: ${clientId}`);
+
 // Initialize Discord RPC Client
+console.log(`[INIT] Creating Discord RPC Client...`);
 const rpc = new RPC.Client({ transport: 'ipc' });
 
 // Initialize WebSocket Server on port 8080
 const port = 8080;
+console.log(`[INIT] Creating WebSocket Server on port ${port}...`);
 const wss = new WebSocket.Server({ port: port });
 
 let isDiscordConnected = false;
 
 rpc.on('ready', () => {
-    console.log(`[Discord] Authed for user ${rpc.user.username}`);
+    console.log(`\n[DISCORD SUCCESS] Successfully authenticated for user: ${rpc.user.username}`);
     isDiscordConnected = true;
 });
 
 // Setup Discord connection retry loop
 function connectToDiscord() {
+    console.log(`[DISCORD] Attempting to connect to local Discord client...`);
     rpc.login({ clientId }).catch((err) => {
-        console.error('[Discord] Failed to connect, retrying in 5s...', err.message);
+        console.error(`[DISCORD ERROR] Failed to connect: ${err.message}`);
+        console.log(`[DISCORD] Retrying connection in 5 seconds...`);
         setTimeout(connectToDiscord, 5000);
     });
 }
 connectToDiscord();
 
 function setActivity(tabUrl, tabTitle) {
+    console.log(`\n[ACTIVITY REQUEST] Received request to set activity.`);
+    console.log(`   --> URL: ${tabUrl}`);
+    console.log(`   --> Title: ${tabTitle}`);
+
     if (!rpc || !isDiscordConnected) {
-        console.warn(`[Warning] Attempted to set activity, but Discord RPC is disconnected.`);
+        console.warn(`[ACTIVITY WARNING] Cannot set activity because Discord RPC is disconnected.`);
         return;
     }
 
@@ -45,6 +58,7 @@ function setActivity(tabUrl, tabTitle) {
             detailText = detailText.substring(0, 125) + '...';
         }
 
+        console.log(`[ACTIVITY] Sending payload to Discord...`);
         rpc.setActivity({
             details: detailText,
             state: stateText,
@@ -52,41 +66,61 @@ function setActivity(tabUrl, tabTitle) {
             largeImageKey: 'chrome', // You can upload an image named "chrome" to your Discord Dev app
             largeImageText: 'Google Chrome',
             instance: false,
+        }).then(() => {
+            console.log(`[ACTIVITY SUCCESS] Presence updated to: ${detailText}`);
+        }).catch(err => {
+            console.error(`[ACTIVITY ERROR] Failed to set activity internally:`, err);
         });
-        console.log(`[RPC] Updated Presence: ${detailText}`);
+
     } catch (err) {
-        console.error(`[Error] Failed to set activity:`, err);
+        console.error(`[ACTIVITY ERROR] Exception caught while setting activity:`, err);
     }
 }
 
 function clearActivity() {
+    console.log(`\n[ACTIVITY CLEAR] Request received to clear activity.`);
     if (rpc && isDiscordConnected) {
-        rpc.clearActivity().catch(console.error);
-        console.log(`[RPC] Cleared Activity`);
+        rpc.clearActivity().then(() => {
+            console.log(`[ACTIVITY SUCCESS] Cleared Activity`);
+        }).catch(err => {
+            console.error(`[ACTIVITY ERROR] Failed to clear activity:`, err);
+        });
+    } else {
+        console.log(`[ACTIVITY CLEAR] Discord disconnected, ignoring clear request.`);
     }
 }
 
-wss.on('connection', function connection(ws) {
-    console.log('[WebSocket] Chrome Extension Connected');
+wss.on('connection', function connection(ws, req) {
+    // Basic IP logging to see if connections reach
+    const ip = req._socket ? req._socket.remoteAddress : "Unknown IP";
+    console.log(`\n[WEBSOCKET] New connection established from: ${ip}`);
 
     ws.on('message', function incoming(message) {
+        console.log(`[WEBSOCKET DATA] Received raw message: ${message.toString()}`);
         try {
             const data = JSON.parse(message);
+            console.log(`[WEBSOCKET JSON] Parsed action: ${data.action}`);
 
             if (data.action === "updatePresence") {
                 setActivity(data.url, data.title);
             } else if (data.action === "clearPresence") {
                 clearActivity();
+            } else {
+                console.log(`[WEBSOCKET] Unknown action received: ${data.action}`);
             }
         } catch (e) {
-            console.error('[WebSocket] Received malformed message:', message.toString());
+            console.error('[WEBSOCKET ERROR] Received malformed JSON message:', message.toString());
         }
     });
 
     ws.on('close', () => {
-        console.log('[WebSocket] Extension Disconnected - Clearing Activity');
+        console.log(`\n[WEBSOCKET] Connection closed from: ${ip}`);
         clearActivity();
+    });
+
+    ws.on('error', (err) => {
+        console.error(`\n[WEBSOCKET ERROR] Connection error from ${ip}:`, err);
     });
 });
 
-console.log(`[Server] RDP Bridge Server started. WebSocket listening on port ${port}...`);
+console.log(`\n[SERVER READY] RDP Bridge Server is actively listening on port ${port}...`);

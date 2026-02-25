@@ -93,14 +93,31 @@ function disconnectFromRDP() {
 // Tab Listening and Presence Updates
 // ----------------------------------------------------
 
-function sendPresenceUpdate(title, url) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+function sendPresenceUpdate(title, cleanUrl) {
+    if (!socket || !socket.readyState !== WebSocket.OPEN) return;
     if (!presenceEnabled) return;
+
+    let stateText = cleanUrl || "Browsing the Web";
+    if (stateText.length > 128) {
+        stateText = stateText.substring(0, 125) + '...';
+    }
+
+    let detailText = title || "Chrome OS Flex";
+    if (detailText.length > 128) {
+        detailText = detailText.substring(0, 125) + '...';
+    }
+
+    // The Chrome Extension now has FULL CONTROL over how the presence looks.
+    // If you want to add an image later, you just add `largeImageKey: 'chrome'` here.
+    const activityPayload = {
+        details: detailText,
+        state: stateText,
+        startTimestamp: Date.now() // Sends current time as a number
+    };
 
     const payload = {
         action: "updatePresence",
-        title: title,
-        url: url
+        activity: activityPayload
     };
 
     socket.send(JSON.stringify(payload));

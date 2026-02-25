@@ -63,8 +63,6 @@ function setActivity(tabUrl, tabTitle) {
             details: detailText,
             state: stateText,
             startTimestamp: new Date(),
-            largeImageKey: 'chrome', // You can upload an image named "chrome" to your Discord Dev app
-            largeImageText: 'Google Chrome',
             instance: false,
         }).then(() => {
             console.log(`[ACTIVITY SUCCESS] Presence updated to: ${detailText}`);
@@ -102,7 +100,7 @@ wss.on('connection', function connection(ws, req) {
             console.log(`[WEBSOCKET JSON] Parsed action: ${data.action}`);
 
             if (data.action === "updatePresence") {
-                setActivity(data.url, data.title);
+                setActivity(data.activity);
             } else if (data.action === "clearPresence") {
                 clearActivity();
             } else if (data.action === "ping") {

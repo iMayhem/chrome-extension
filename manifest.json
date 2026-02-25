@@ -29,6 +29,14 @@
       "js": [
         "scripts/content.js"
       ]
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "scripts/typing.js"
+      ]
     }
   ],
   "icons": {

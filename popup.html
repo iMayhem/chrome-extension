@@ -51,7 +51,71 @@
     </div>
     <p class="help-text">One domain per line.</p>
 
-    <button id="saveBtn">Save & Apply</button>
+    <hr>
+    <h3>Ultimate Productivity</h3>
+    <div class="toggle-container">
+      <label class="switch">
+        <input type="checkbox" id="enableDetailMode" checked>
+        <span class="slider round"></span>
+      </label>
+      <span style="font-weight: bold; color: #4CAF50;">Show Full Details (Titles/URLs)</span>
+    </div>
+    <p class="help-text" style="margin-top: -5px; margin-bottom: 10px;">Turn this off to ONLY show "Studying" or "AFK"
+      on Discord.</p>
+
+    <div class="toggle-container">
+      <label class="switch">
+        <input type="checkbox" id="enableWpm">
+        <span class="slider round"></span>
+      </label>
+      <span>Live WPM Tracker</span>
+    </div>
+
+    <div class="toggle-container" style="margin-top: 5px;">
+      <label class="switch">
+        <input type="checkbox" id="enableTabCount">
+        <span class="slider round"></span>
+      </label>
+      <span>Tab Overload Stats</span>
+    </div>
+
+    <div class="toggle-container" style="margin-top: 5px;">
+      <label class="switch">
+        <input type="checkbox" id="enableYouTube" checked>
+        <span class="slider round"></span>
+      </label>
+      <span>YouTube Media Status</span>
+    </div>
+
+    <div class="toggle-container" style="margin-top: 5px;">
+      <label class="switch">
+        <input type="checkbox" id="enableIncognito" checked>
+        <span class="slider round"></span>
+      </label>
+      <span>Hide Incognito Tabs</span>
+    </div>
+
+    <div style="margin-top: 15px;">
+      <button id="startPomodoroBtn" style="background-color: #f44336; margin-bottom: 5px;">Start 25m Focus
+        (Pomodoro)</button>
+      <button id="stopPomodoroBtn" style="background-color: #607d8b; display: none;">Stop Focus Timer</button>
+      <div id="pomodoroStatus" style="font-weight: bold; margin-top: 5px; color: #f44336;"></div>
+    </div>
+
+    <hr>
+    <h3>Manual AFK Override</h3>
+    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+      <input type="number" id="afkMinutes" placeholder="15" min="1" max="1440"
+        style="width: 60px; margin-right: 10px; margin-bottom: 0;">
+      <span>Minutes Away</span>
+    </div>
+    <div>
+      <button id="startAfkBtn" style="background-color: #ff9800; margin-bottom: 5px;">Set AFK Status</button>
+      <button id="stopAfkBtn" style="background-color: #607d8b; display: none;">Clear AFK</button>
+      <div id="afkStatusText" style="font-weight: bold; margin-top: 5px; color: #ff9800;"></div>
+    </div>
+
+    <button id="saveBtn" style="margin-top: 20px;">Save & Apply Settings</button>
     <div id="status"></div>
   </div>
   <script src="scripts/popup.js"></script>

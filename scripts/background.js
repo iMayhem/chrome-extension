@@ -7,8 +7,29 @@ let customPrefix = "";
 let privacyBlacklist = [];
 let listMode = "blacklist";
 
+let enableWpm = false;
+let currentWpm = 0;
+
+let enableTabCount = false;
+let currentTabCount = 0;
+
+let enableDetailMode = true;
+let enableYouTube = true;
+let enableIncognito = true;
+
+let pomodoroEndTime = null;
+let pomodoroInterval = null;
+
+let afkEndTime = null;
+let afkInterval = null;
+
+let reconnectDelay = 5000; // Start at 5 seconds
+
 // Initialize extension
-chrome.storage.local.get(['rdpAddress', 'rdpPort', 'presenceEnabled', 'customPrefix', 'blacklist', 'listMode'], (result) => {
+chrome.storage.local.get([
+    'rdpAddress', 'rdpPort', 'presenceEnabled', 'customPrefix', 'blacklist', 'listMode',
+    'enableWpm', 'enableTabCount', 'pomodoroEndTime', 'enableYouTube', 'enableIncognito', 'afkEndTime', 'enableDetailMode'
+], (result) => {
     if (result.presenceEnabled !== undefined) {
         presenceEnabled = result.presenceEnabled;
     }
@@ -24,6 +45,37 @@ chrome.storage.local.get(['rdpAddress', 'rdpPort', 'presenceEnabled', 'customPre
     if (result.listMode) {
         listMode = result.listMode;
     }
+    if (result.enableWpm !== undefined) {
+        enableWpm = result.enableWpm;
+    }
+    if (result.enableTabCount !== undefined) {
+        enableTabCount = result.enableTabCount;
+    }
+    if (result.enableDetailMode !== undefined) {
+        enableDetailMode = result.enableDetailMode;
+    }
+    if (result.enableYouTube !== undefined) {
+        enableYouTube = result.enableYouTube;
+    }
+    if (result.enableIncognito !== undefined) {
+        enableIncognito = result.enableIncognito;
+    }
+    if (result.pomodoroEndTime) {
+        pomodoroEndTime = result.pomodoroEndTime;
+        if (pomodoroEndTime > Date.now()) {
+            startPomodoroTick();
+        } else {
+            pomodoroEndTime = null;
+        }
+    }
+    if (result.afkEndTime) {
+        afkEndTime = result.afkEndTime;
+        if (afkEndTime > Date.now()) {
+            startAfkTick();
+        } else {
+            afkEndTime = null;
+        }
+    }
     if (result.rdpAddress && presenceEnabled) {
         rdpAddress = result.rdpAddress;
         connectToRDP();
@@ -38,6 +90,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         presenceEnabled = message.enabled;
         customPrefix = message.customPrefix || "";
         listMode = message.listMode || "blacklist";
+        enableWpm = message.enableWpm || false;
+        enableTabCount = message.enableTabCount || false;
+
+        if (message.enableDetailMode !== undefined) enableDetailMode = message.enableDetailMode;
+        if (message.enableYouTube !== undefined) enableYouTube = message.enableYouTube;
+        if (message.enableIncognito !== undefined) enableIncognito = message.enableIncognito;
 
         if (message.blacklist) {
             privacyBlacklist = message.blacklist.split('\n').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
@@ -55,9 +113,67 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } else {
             disconnectFromRDP();
         }
+    } else if (message.action === 'wpmUpdate') {
+        if (enableWpm) {
+            currentWpm = message.wpm;
+            updatePresenceForActiveTab();
+        }
+    } else if (message.action === 'startPomodoro') {
+        // 25 minutes from now
+        pomodoroEndTime = Date.now() + (25 * 60 * 1000);
+        chrome.storage.local.set({ pomodoroEndTime: pomodoroEndTime });
+        startPomodoroTick();
+        updatePresenceForActiveTab();
+    } else if (message.action === 'stopPomodoro') {
+        pomodoroEndTime = null;
+        chrome.storage.local.set({ pomodoroEndTime: null });
+        if (pomodoroInterval) clearInterval(pomodoroInterval);
+        updatePresenceForActiveTab();
+    } else if (message.action === 'startAfk') {
+        const mins = message.minutes || 15;
+        afkEndTime = Date.now() + (mins * 60 * 1000);
+        chrome.storage.local.set({ afkEndTime: afkEndTime });
+        startAfkTick();
+        updatePresenceForActiveTab();
+    } else if (message.action === 'stopAfk') {
+        afkEndTime = null;
+        chrome.storage.local.set({ afkEndTime: null });
+        if (afkInterval) clearInterval(afkInterval);
+        updatePresenceForActiveTab();
     }
     return true;
 });
+
+function startPomodoroTick() {
+    if (pomodoroInterval) clearInterval(pomodoroInterval);
+    pomodoroInterval = setInterval(() => {
+        if (pomodoroEndTime && Date.now() > pomodoroEndTime) {
+            // Timer finished
+            pomodoroEndTime = null;
+            chrome.storage.local.set({ pomodoroEndTime: null });
+            clearInterval(pomodoroInterval);
+            updatePresenceForActiveTab();
+        } else if (pomodoroEndTime) {
+            // Periodically force an update to keep the counter correct on Discord
+            updatePresenceForActiveTab();
+        }
+    }, 60000); // Check every minute
+}
+
+function startAfkTick() {
+    if (afkInterval) clearInterval(afkInterval);
+    afkInterval = setInterval(() => {
+        if (afkEndTime && Date.now() > afkEndTime) {
+            // Timer finished
+            afkEndTime = null;
+            chrome.storage.local.set({ afkEndTime: null });
+            clearInterval(afkInterval);
+            updatePresenceForActiveTab();
+        } else if (afkEndTime) {
+            updatePresenceForActiveTab();
+        }
+    }, 60000); // Check every minute
+}
 
 function connectToRDP() {
     if (socket) return;
@@ -69,12 +185,17 @@ function connectToRDP() {
 
     socket.onopen = () => {
         console.log(`[RDP Bridge] Connected to ${url}`);
+        reconnectDelay = 5000; // Reset delay on successful connection
         updatePresenceForActiveTab();
 
         // Keep the service worker alive by pinging the server every 20 seconds
         keepAliveInterval = setInterval(() => {
             if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ action: "ping" }));
+                try {
+                    socket.send(JSON.stringify({ action: "ping" }));
+                } catch (e) {
+                    console.error("Failed to send ping:", e);
+                }
             }
         }, 20000);
     };
@@ -87,9 +208,11 @@ function connectToRDP() {
         }
         socket = null;
 
-        // Attempt reconnect every 10 seconds if still enabled
+        // Attempt reconnect with exponential backoff if still enabled
         if (presenceEnabled && rdpAddress) {
-            setTimeout(connectToRDP, 10000);
+            console.log(`[RDP Bridge] Reconnecting in ${reconnectDelay / 1000} seconds...`);
+            setTimeout(connectToRDP, reconnectDelay);
+            reconnectDelay = Math.min(reconnectDelay * 1.5, 60000); // Cap at 60 seconds
         }
     };
 
@@ -123,7 +246,11 @@ function sendPresenceUpdate(title, cleanUrl) {
         url: cleanUrl
     };
 
-    socket.send(JSON.stringify(payload));
+    try {
+        socket.send(JSON.stringify(payload));
+    } catch (e) {
+        console.error("Failed to send presence payload:", e);
+    }
 }
 
 function updatePresenceForActiveTab() {
@@ -136,6 +263,41 @@ function updatePresenceForActiveTab() {
 }
 
 function handleTabChange(tab) {
+    if (enableTabCount) {
+        chrome.tabs.query({}, (tabs) => {
+            currentTabCount = tabs.length;
+            processAndSendPresence(tab, currentTabCount);
+        });
+    } else {
+        processAndSendPresence(tab, 0);
+    }
+}
+
+function processAndSendPresence(tab, totalTabs) {
+    // Check if AFK override is active
+    if (afkEndTime && afkEndTime > Date.now()) {
+        const remainingMinutes = Math.ceil((afkEndTime - Date.now()) / 60000);
+        sendPresenceUpdate(`Away for ${remainingMinutes}m`, "💤 AFK");
+        return;
+    }
+
+    // Detail Mode off - block custom statuses
+    if (!enableDetailMode) {
+        let title = "Active";
+        if (pomodoroEndTime && pomodoroEndTime > Date.now()) {
+            const remainingMinutes = Math.ceil((pomodoroEndTime - Date.now()) / 60000);
+            title = `[🍅 ${remainingMinutes}m] Focused`;
+        }
+        sendPresenceUpdate(title, "Studying");
+        return;
+    }
+
+    // Check if it's an incognito tab
+    if (enableIncognito && tab && tab.incognito) {
+        sendPresenceUpdate("Incognito Browsing", "Private Session");
+        return;
+    }
+
     // Show 'Idle' when on a new tab or internal page
     if (!tab || !tab.url || tab.url.startsWith('chrome://')) {
         sendPresenceUpdate("New Tab", "Idle");
@@ -166,7 +328,7 @@ function handleTabChange(tab) {
     let finalTitle = tab.title;
 
     // Automatic Media Formatting for YouTube
-    if (cleanUrl.includes("youtube.com") && finalTitle.endsWith(" - YouTube")) {
+    if (enableYouTube && cleanUrl.includes("youtube.com") && finalTitle.endsWith(" - YouTube")) {
         // Remove the " - YouTube" suffix
         finalTitle = finalTitle.slice(0, -10);
         // Remove notification badges (e.g., "(3) ")
@@ -179,6 +341,22 @@ function handleTabChange(tab) {
 
     if (customPrefix && customPrefix.trim() !== '') {
         finalTitle = `${customPrefix.trim()} ${finalTitle}`;
+    }
+
+    // Append Pomodoro status if active
+    if (pomodoroEndTime && pomodoroEndTime > Date.now()) {
+        const remainingMinutes = Math.ceil((pomodoroEndTime - Date.now()) / 60000);
+        finalTitle = `[🍅 ${remainingMinutes}m] ${finalTitle}`;
+    }
+
+    // Append WPM
+    if (enableWpm && currentWpm > 0) {
+        finalTitle = `${finalTitle} | ⌨️ ${currentWpm} WPM`;
+    }
+
+    // Append Tab count
+    if (enableTabCount && totalTabs > 0) {
+        cleanUrl = `${cleanUrl} (${totalTabs} tabs open)`;
     }
 
     sendPresenceUpdate(finalTitle, cleanUrl);
@@ -205,7 +383,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'mediaUpdate' && sender.tab.active) {
         if (!socket || socket.readyState !== WebSocket.OPEN) return;
-        if (!presenceEnabled) return;
+        if (!presenceEnabled || !enableYouTube || !enableDetailMode) return;
+
+        // Do not process media updates if AFK is active
+        if (afkEndTime && afkEndTime > Date.now()) return;
 
         // Respect domain filters even for media
         const urlObj = new URL(message.url);
@@ -221,12 +402,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         if (cleanUrl.includes("youtube.com")) {
             detailText = detailText.replace(/ - YouTube$/, "").replace(/^\(\d+\)\s+/, "");
+
+            // Format seconds into H:MM:SS or M:SS
+            const formatTime = (secs) => {
+                if (isNaN(secs) || secs < 0) return "0:00";
+                const h = Math.floor(secs / 3600);
+                const m = Math.floor((secs % 3600) / 60);
+                const s = Math.floor(secs % 60);
+                if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                return `${m}:${s.toString().padStart(2, '0')}`;
+            };
+
+            const timeString = `[${formatTime(message.currentTime)} / ${formatTime(message.duration)}]`;
+
             if (message.isPlaying) {
                 detailText = `[▶] ${detailText}`;
+                stateText = `${stateText} ${timeString}`;
                 // Calculate when the video started playing to show elapsed time
                 startTime = Date.now() - (message.currentTime * 1000);
             } else {
-                detailText = `[⏸] ${detailText} (Paused)`;
+                detailText = `[⏸] ${detailText}`;
+                stateText = `${stateText} ${timeString} (Paused)`;
             }
         }
 
@@ -243,9 +439,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             activityPayload.startTimestamp = startTime;
         }
 
-        socket.send(JSON.stringify({
-            action: "updatePresence",
-            activity: activityPayload
-        }));
+        try {
+            socket.send(JSON.stringify({
+                action: "updatePresence",
+                activity: activityPayload
+            }));
+        } catch (e) {
+            console.error("Failed to send media update payload:", e);
+        }
     }
 });

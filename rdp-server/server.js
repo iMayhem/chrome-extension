@@ -10,6 +10,15 @@ console.log('      Discord RDP Bridge Started (DEBUG)      ');
 console.log('==============================================');
 console.log(`[INIT] Client ID configured: ${clientId}`);
 
+// Global error handling to prevent the entire executable from crashing unexpectedly
+process.on('uncaughtException', (err) => {
+    console.error('[CRITICAL] Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // Initialize Discord RPC Client
 console.log(`[INIT] Creating Discord RPC Client...`);
 const rpc = new RPC.Client({ transport: 'ipc' });
@@ -119,8 +128,12 @@ wss.on('connection', function connection(ws, req) {
     });
 
     ws.on('error', (err) => {
-        console.error(`\n[WEBSOCKET ERROR] Connection error from ${ip}:`, err);
+        console.error(`\n[WEBSOCKET ERROR] Connection error from ${ip}:`, err.message || err);
     });
+});
+
+wss.on('error', (err) => {
+    console.error('[SERVER ERROR] WebSocket Server encountered an error:', err);
 });
 
 console.log(`\n[SERVER READY] RDP Bridge Server is actively listening on port ${port}...`);

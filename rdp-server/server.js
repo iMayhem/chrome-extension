@@ -100,7 +100,7 @@ wss.on('connection', function connection(ws, req) {
             console.log(`[WEBSOCKET JSON] Parsed action: ${data.action}`);
 
             if (data.action === "updatePresence") {
-                setActivity(data.activity);
+                setActivity(data.url, data.title);
             } else if (data.action === "clearPresence") {
                 clearActivity();
             } else if (data.action === "ping") {

@@ -1,0 +1,142 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 300px;
+  margin: 0;
+  padding: 16px;
+  background-color: #36393f;
+  color: #dcddde;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+p {
+  margin: 0;
+  font-size: 13px;
+  color: #b9bbbe;
+}
+
+label {
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #8e9297;
+}
+
+input[type="password"] {
+  background-color: #202225;
+  border: 1px solid #202225;
+  color: #dcddde;
+  border-radius: 3px;
+  padding: 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+input[type="password"]:focus {
+  border-color: #7289da;
+}
+
+.help-text {
+  font-size: 11px;
+  color: #faa61a;
+}
+
+button {
+  background-color: #5865f2;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #4752c4;
+}
+
+#status {
+  font-size: 13px;
+  text-align: center;
+  min-height: 18px;
+}
+
+.success { color: #43b581; }
+.error { color: #f04747; }
+
+/* Toggle Switch Styles */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.toggle-container span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #72767d;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #43b581;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 20px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}

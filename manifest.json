@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome OS RDP Discord Presence",
+  "version": "2.0.0",
+  "description": "Bridges your active tab to a remote RDP server running Discord.",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "ws://*/*",
+    "wss://*/*"
+  ],
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "assets/icon128.png"
+    }
+  },
+  "icons": {
+    "128": "assets/icon128.png"
+  }
+}

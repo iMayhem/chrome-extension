@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>RDP Bridge Settings</title>
+  <link rel="stylesheet" href="assets/main.css">
+</head>
+
+<body>
+  <div class="container">
+    <h2>RDP Bridge Presence</h2>
+    <p>Displays your active tab in your RDP Discord.</p>
+
+    <label for="rdpAddress">RDP Server Address</label>
+    <input type="text" id="rdpAddress" placeholder="e.g. 192.168.1.50 or myserver.com" autocomplete="off"
+      spellcheck="false">
+
+    <label for="rdpPort">Port</label>
+    <input type="text" id="rdpPort" placeholder="e.g. 8080" autocomplete="off" spellcheck="false" value="8080">
+    <p class="help-text">Make sure this port is open on your RDP firewall.</p>
+
+    <div class="toggle-container">
+      <label class="switch">
+        <input type="checkbox" id="enablePresence">
+        <span class="slider round"></span>
+      </label>
+      <span>Enable Bridge</span>
+    </div>
+
+    <button id="saveBtn">Save & Apply</button>
+    <div id="status"></div>
+  </div>
+  <script src="scripts/popup.js"></script>
+</body>
+
+</html>

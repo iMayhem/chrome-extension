@@ -94,7 +94,7 @@ function disconnectFromRDP() {
 // ----------------------------------------------------
 
 function sendPresenceUpdate(title, cleanUrl) {
-    if (!socket || !socket.readyState !== WebSocket.OPEN) return;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
     if (!presenceEnabled) return;
 
     let stateText = cleanUrl || "Browsing the Web";

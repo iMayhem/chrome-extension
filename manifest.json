@@ -21,6 +21,16 @@
       "128": "assets/icon128.png"
     }
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "scripts/content.js"
+      ]
+    }
+  ],
   "icons": {
     "128": "assets/icon128.png"
   }

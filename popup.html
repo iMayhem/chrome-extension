@@ -28,6 +28,29 @@
       <span>Enable Bridge</span>
     </div>
 
+    <hr>
+    <h3>Advanced Settings</h3>
+
+    <label for="customPrefix">Custom Status Prefix</label>
+    <input type="text" id="customPrefix" placeholder="e.g. Researching:" autocomplete="off" spellcheck="false">
+    <p class="help-text">Prepended to the tab title (e.g. "Researching: Wikipedia")</p>
+
+    <label for="blacklist">Domain Filter List</label>
+    <textarea id="blacklist" placeholder="bank.com&#10;paypal.com" rows="3" spellcheck="false"></textarea>
+
+    <div style="margin-top: 5px;">
+      <label>
+        <input type="radio" name="listMode" value="blacklist" checked>
+        Blacklist (Hide these sites)
+      </label>
+      <br>
+      <label>
+        <input type="radio" name="listMode" value="whitelist">
+        Whitelist (ONLY show these sites)
+      </label>
+    </div>
+    <p class="help-text">One domain per line.</p>
+
     <button id="saveBtn">Save & Apply</button>
     <div id="status"></div>
   </div>
